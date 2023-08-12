@@ -8,9 +8,13 @@ import (
 
 type authedHandler func(http.ResponseWriter, *http.Request, data.User)
 
-func (api *apiConfig) middlewareAuth(next http.Handler) http.HandlerFunc {
+func (api *apiConfig) middlewareAuth(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		authorizationHeader := r.Header.Get("Authorization")
+		if authorizationHeader == "" {
+			respondWithError(w, http.StatusBadRequest, "Missing Authorization Header")
+			return
+		}
 		splitHeader := strings.Split(authorizationHeader, " ")
 		if len(splitHeader) != 2 || splitHeader[0] != "ApiKey" {
 			respondWithError(w, http.StatusUnauthorized, "Invalid ApiKey")
@@ -21,7 +25,7 @@ func (api *apiConfig) middlewareAuth(next http.Handler) http.HandlerFunc {
 			respondWithError(w, http.StatusNotFound, "ApiKey not found")
 			return
 		}
-		api.contextSetUser(r, &user)
+		r = api.contextSetUser(r, user)
 		next.ServeHTTP(w, r)
 	})
 }

@@ -8,11 +8,12 @@ import (
 )
 
 type InputUser struct {
-	name string
+	Name string `json:"name"`
 }
 
 func (app *apiConfig) getUsers(w http.ResponseWriter, r *http.Request) {
-	respondWithJSON(w, 200, "")
+	user := app.contextGetUser(r)
+	respondWithJSON(w, 200, user)
 }
 
 func (app *apiConfig) postUsers(w http.ResponseWriter, r *http.Request) {
@@ -23,7 +24,7 @@ func (app *apiConfig) postUsers(w http.ResponseWriter, r *http.Request) {
 		respondWithError(w, http.StatusInternalServerError, fmt.Sprint("%s", err))
 		return
 	}
-	user, _ := data.NewUser(inputUser.name)
+	user, _ := data.NewUser(inputUser.Name)
 	err = app.models.Users.Insert(user)
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, fmt.Sprintf("%s", err))
@@ -34,6 +35,7 @@ func (app *apiConfig) postUsers(w http.ResponseWriter, r *http.Request) {
 
 func (app *apiConfig) userRoute() http.Handler {
 	route := chi.NewRouter()
+	route.Use(app.middlewareAuth)
 	route.Get("/", app.getUsers)
 	route.Post("/", app.postUsers)
 	return route
