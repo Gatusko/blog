@@ -10,6 +10,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"sync"
 	"time"
 )
 
@@ -44,9 +45,33 @@ func main() {
 	defer db.Close()
 	//Injecting Database type of Connection
 	myApi.models = data.NewModels(db)
+	go myApi.workerScrappers(2, time.Second*5)
 	log.Printf("Connection Worked")
 	err = http.ListenAndServe(":"+port, myApi.mapAllRouters())
 	log.Fatalf("Got an error running server: %s", err)
+}
+
+func (apiConfig *apiConfig) workerScrappers(number int, interval time.Duration) {
+	ticker := time.NewTicker(interval)
+	log.Printf("Enter of workScrapper")
+	for range ticker.C {
+		feeds, err := apiConfig.models.Feeds.GetNextFeedsToFetch(number)
+		if err != nil {
+			log.Printf("Error at getting the next Feeds : %s", err)
+			continue
+		}
+		var wg sync.WaitGroup
+		for _, feed := range feeds {
+			wg.Add(1)
+			go apiConfig.ScrapData(feed.Id, &wg)
+		}
+		wg.Wait()
+		log.Printf("Succes of scraping the data")
+	}
+}
+
+func testingGo() {
+	log.Println("test")
 }
 
 func (app *apiConfig) openDB() (*sql.DB, error) {
