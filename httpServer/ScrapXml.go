@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"sync"
+	"time"
 )
 
 type ScrapXml struct {
@@ -54,4 +55,23 @@ func (app *apiConfig) ScrapData(id uuid.UUID, wg *sync.WaitGroup) {
 	}
 
 	log.Println("Scraped succes of Feed", feed)
+}
+
+func (apiConfig *apiConfig) workerScrappers(number int, interval time.Duration) {
+	ticker := time.NewTicker(interval)
+	log.Printf("Enter of workScrapper")
+	for range ticker.C {
+		feeds, err := apiConfig.models.Feeds.GetNextFeedsToFetch(number)
+		if err != nil {
+			log.Printf("Error at getting the next Feeds : %s", err)
+			continue
+		}
+		var wg sync.WaitGroup
+		for _, feed := range feeds {
+			wg.Add(1)
+			go apiConfig.ScrapData(feed.Id, &wg)
+		}
+		wg.Wait()
+		log.Printf("Succes of scraping the data")
+	}
 }
