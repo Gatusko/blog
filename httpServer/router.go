@@ -19,5 +19,6 @@ func (app *apiConfig) mapAllRouters() http.Handler {
 	route.Mount("/v1", app.healthCheckRoute())
 	route.Mount("/v1/feeds", app.feedRoute())
 	route.Mount("/v1/feed_follows", app.feedFollowRoutes())
+	route.Mount("/v1/posts", app.postRoute())
 	return route
 }

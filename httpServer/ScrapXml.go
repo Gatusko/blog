@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/xml"
+	"github.com/Gatusko/blog/internal/data"
 	"github.com/google/uuid"
 	"log"
 	"net/http"
@@ -22,6 +23,7 @@ type ScrapXml struct {
 			Rel  string `xml:"rel,attr"`
 			Type string `xml:"type,attr"`
 		} `xml:"link"`
+		Description string `xml:"description"`
 	} `xml:"channel"`
 }
 
@@ -49,6 +51,11 @@ func (app *apiConfig) ScrapData(id uuid.UUID, wg *sync.WaitGroup) {
 	}
 	log.Printf("Succes decoding : %s", scrppedData.Channel.Title)
 
+	post := data.NewPost(id, scrppedData.Channel.Title, scrppedData.Channel.Link.Href, scrppedData.Channel.Description)
+	err = app.models.Post.InsertPost(post)
+	if err != nil {
+		log.Printf("Error saving post : %s", err)
+	}
 	err = app.models.Feeds.MarkFeedFetched(id)
 	if err != nil {
 		log.Println(err)
